@@ -102,7 +102,7 @@ function Dashboard() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("http://localhost:5000/predict", {
+      const res = await fetch("https://carloscarvajal760-diagnostico-plantas-api.hf.space/predict", {
         method: "POST",
         body: formData
       });
