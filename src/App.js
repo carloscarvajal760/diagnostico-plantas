@@ -4,7 +4,6 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 
 function App() {
-
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,69 +14,51 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Pantalla de carga
   if (loading) {
     return (
-      <div style={{
-        background: "linear-gradient(135deg, #2e7d32, #1b5e20)",
-        height: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        flexDirection: "column",
-        color: "white",
-        fontFamily: "Segoe UI, sans-serif",
-        textAlign: "center"
-      }}>
+      <div className="h-screen w-full bg-gradient-to-br from-[#1b5e20] to-[#2e7d32] flex flex-col items-center justify-center text-white p-6">
+        
+        {/* Contenedor del Logo con efecto de elevación */}
+        <div className="relative mb-8">
+          <div className="absolute inset-0 bg-white/20 blur-3xl rounded-full"></div>
+          <img
+            src="/logo.png"
+            alt="logo"
+            className="w-32 h-32 relative z-10 animate-pulse drop-shadow-2xl"
+          />
+        </div>
 
-        {/* Logo */}
-        <img
-          src="/logo.png"
-          alt="logo"
-          style={{
-            width: "120px",
-            marginBottom: "20px",
-            animation: "pulse 1.5s infinite"
-          }}
-        />
+        {/* Textos con tipografía moderna */}
+        <div className="text-center space-y-2 animate-in fade-in duration-1000">
+          <h1 className="text-4xl font-black tracking-tighter uppercase italic">
+            Aranjuez<span className="text-yellow-400">Plant</span>
+          </h1>
+          
+          <div className="h-1 w-12 bg-yellow-400 mx-auto rounded-full my-4"></div>
+          
+          <p className="text-lg font-medium opacity-90 leading-tight">
+            Diagnóstico de Plantas
+          </p>
+          
+          <p className="text-xs font-bold opacity-60 uppercase tracking-[0.2em] mt-4">
+            Vivero Municipal de Aranjuez
+          </p>
+        </div>
 
-        {/* Nombre App */}
-        <h1 style={{
-          fontSize: "32px",
-          marginBottom: "5px",
-          letterSpacing: "1px"
-        }}>
-          AranjuezPlant
-        </h1>
+        {/* Barra de carga estilo Android/iOS */}
+        <div className="absolute bottom-16 w-48 h-1.5 bg-white/20 rounded-full overflow-hidden">
+          <div className="h-full bg-yellow-400 animate-[loading_4s_ease-in-out]"></div>
+        </div>
 
-        {/* Subtitulo */}
-        <p style={{
-          fontSize: "16px",
-          opacity: 0.9,
-          marginBottom: "8px"
-        }}>
-          Diagnóstico de Enfermedades en Plantas
-        </p>
-
-        {/* Lugar */}
-        <p style={{
-          fontSize: "14px",
-          opacity: 0.7
-        }}>
-          Vivero Municipal de Aranjuez
-        </p>
-
-        {/* Animación */}
+        {/* Definición de la animación de la barra en el footer */}
         <style>
           {`
-            @keyframes pulse {
-              0% { transform: scale(1); opacity: 1; }
-              50% { transform: scale(1.08); opacity: 0.8; }
-              100% { transform: scale(1); opacity: 1; }
+            @keyframes loading {
+              0% { width: 0%; }
+              100% { width: 100%; }
             }
           `}
         </style>
-
       </div>
     );
   }
