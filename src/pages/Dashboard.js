@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { signOut } from "firebase/auth";
 import { auth, db } from "../firebase/firebaseConfig"; 
 import { collection, addDoc, serverTimestamp, query, getDocs, orderBy, limit } from "firebase/firestore";
-import { FaSignOutAlt, FaCamera, FaUpload, FaCheckCircle, FaBrain, FaLeaf, FaSeedling, FaExclamationTriangle, FaFilePdf, FaUserShield, FaHistory, FaSync } from "react-icons/fa";
+import { FaSignOutAlt, FaCamera, FaUpload, FaCheckCircle, FaBrain, FaLeaf, FaSeedling, FaExclamationTriangle, FaFilePdf, FaHistory, FaSync } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { baseConocimiento } from "../data/tratamientos"; 
 import jsPDF from "jspdf";
@@ -14,6 +14,7 @@ function Dashboard() {
   const navigate = useNavigate();
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const resultadosRef = useRef(null); // Referencia para el scroll automático
 
   // Estados
   const [user, setUser] = useState(null);
@@ -58,6 +59,13 @@ function Dashboard() {
     } catch (e) { console.error("Error Firestore:", e); }
   };
 
+  // --- FUNCIÓN DE SCROLL PARA CELULARES ---
+  const ejecutarScroll = () => {
+    if (window.innerWidth < 1024) { 
+      resultadosRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   // --- LÓGICA DE CÁMARA ---
   const startCamera = async () => {
     setCameraActive(true);
@@ -94,9 +102,10 @@ function Dashboard() {
       
       setResult(resObj);
       setReporteUser(user.displayName || user.email);
-      setFechaDiagnostico(new Date().toLocaleString()); // Fecha actual para el jardinero en tiempo real
+      setFechaDiagnostico(new Date().toLocaleString());
       guardarEnNube(resObj);
-    } catch (err) { alert("Error de conexión con el servidor IA"); }
+      setTimeout(ejecutarScroll, 300); // Bajar al resultado tras analizar
+    } catch (err) { alert("Error de conexión con la IA"); }
     finally { setIsAnalyzing(false); }
   };
 
@@ -118,7 +127,7 @@ function Dashboard() {
     pdf.text(`Fecha del diagnóstico original: ${fechaDiagnostico}`, 15, 45);
 
     pdf.addImage(imgData, "PNG", 15, 55, 180, 140);
-    pdf.save(`Reporte_Fitosanitario_${result.disease}.pdf`);
+    pdf.save(`Reporte_Aranjuez_${result.disease}.pdf`);
   };
 
   const handleLogout = async () => {
@@ -133,7 +142,7 @@ function Dashboard() {
       {/* HEADER */}
       <div className="px-6 pt-10 pb-6 flex items-center justify-between max-w-6xl mx-auto">
         <div className="flex items-center gap-3">
-          <img src={user?.photoURL || "https://via.placeholder.com/150"} alt="u" className="w-10 h-10 rounded-full border-2 border-white/20" />
+          <img src={user?.photoURL || "https://via.placeholder.com/150"} alt="u" className="w-10 h-10 rounded-full border-2 border-white/20 shadow-md" />
           <div>
             <p className="text-green-300 text-[10px] font-bold uppercase tracking-widest">AranjuezPlant</p>
             <p className="font-bold text-sm">Hola, {user?.displayName?.split(" ")[0] || "Admin"}</p>
@@ -145,7 +154,7 @@ function Dashboard() {
       <div className="p-4 max-w-6xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
-          {/* LADO IZQUIERDO: SCANNER (Jardinero) O HISTORIAL (Admin) */}
+          {/* LADO IZQUIERDO: SCANNER / HISTORIAL */}
           <div className="space-y-6">
             {user?.email === ADMIN_EMAIL ? (
               <div className="bg-slate-900/60 backdrop-blur-xl rounded-[2.5rem] p-6 border border-white/10 shadow-2xl">
@@ -168,12 +177,13 @@ function Dashboard() {
                         const fecha = item.fecha?.toDate().toLocaleString() || "Sin fecha";
                         setFechaDiagnostico(fecha);
                         setImagePreview(null); 
+                        setTimeout(ejecutarScroll, 100); // Bajar al reporte al hacer clic
                       }} 
                       className="bg-white/5 p-4 rounded-2xl border border-transparent hover:border-green-500 transition-all cursor-pointer group"
                     >
                       <div className="flex justify-between items-center">
                         <p className="font-bold text-sm text-green-100 uppercase tracking-tighter">{item.enfermedad}</p>
-                        <span className="text-[9px] bg-green-900/50 text-green-300 px-2 py-1 rounded-md tracking-widest uppercase">Ver</span>
+                        <span className="text-[9px] bg-green-900/50 text-green-300 px-3 py-1 rounded-full tracking-widest uppercase font-black">Ver</span>
                       </div>
                       <p className="text-[10px] text-slate-500 mt-1 italic">Realizado por: {item.usuario}</p>
                     </div>
@@ -181,7 +191,7 @@ function Dashboard() {
                 </div>
               </div>
             ) : (
-              /* PANEL DEL JARDINERO (SCANNER) */
+              /* VISTA JARDINERO (SCANNER) */
               <div className="bg-white/10 backdrop-blur-xl rounded-[2.5rem] shadow-2xl p-6 border border-white/20">
                 <div className="flex items-center justify-center gap-2 mb-6 text-yellow-400">
                   <FaSeedling className="animate-bounce" />
@@ -197,7 +207,7 @@ function Dashboard() {
                   <div className="grid grid-cols-2 gap-4 mb-6">
                     <button onClick={startCamera} className="flex flex-col items-center py-4 bg-white text-green-900 rounded-3xl font-black text-[10px] uppercase shadow-lg active:scale-95 transition-all"><FaCamera size={20} className="mb-1" /> Cámara</button>
                     <label className="flex flex-col items-center py-4 bg-green-500 text-white rounded-3xl font-black text-[10px] uppercase shadow-lg cursor-pointer active:scale-95 transition-all"><FaUpload size={20} className="mb-1" /> Galería<input type="file" accept="image/*" onChange={(e) => { 
-                      const f = e.target.files[0]; setFile(f); setImagePreview(URL.createObjectURL(f)); 
+                      const f = e.target.files[0]; if(f){setFile(f); setImagePreview(URL.createObjectURL(f));} 
                     }} className="hidden" /></label>
                   </div>
                 )}
@@ -208,8 +218,8 @@ function Dashboard() {
             )}
           </div>
 
-          {/* LADO DERECHO: REPORTE DINÁMICO */}
-          <div className="space-y-6">
+          {/* LADO DERECHO: REPORTE DINÁMICO (Con referencia para scroll) */}
+          <div className="space-y-6" ref={resultadosRef}>
             {result ? (
               <div className="animate-in slide-in-from-bottom-5 duration-500">
                 <div id="seccion-reporte" className="bg-white rounded-[2.5rem] p-8 shadow-2xl text-slate-900 border border-slate-100">
@@ -226,7 +236,7 @@ function Dashboard() {
                     </div>
                   </div>
                   <h3 className="text-3xl font-black uppercase tracking-tighter text-slate-800 leading-none mb-2">{result.disease}</h3>
-                  <p className="text-[10px] text-slate-400 mb-6 font-bold uppercase tracking-widest italic">Personal: {reporteUser}</p>
+                  <p className="text-[10px] text-slate-400 mb-6 font-bold uppercase tracking-widest italic">Responsable: {reporteUser}</p>
                   {baseConocimiento[result.disease] && (
                     <div className="space-y-4 pt-6 border-t border-slate-100">
                       <div className="bg-yellow-50 p-4 rounded-2xl border border-yellow-100">
@@ -237,7 +247,7 @@ function Dashboard() {
                   )}
                 </div>
 
-                {/* BOTÓN PDF: SOLO VISIBLE PARA EL ADMIN */}
+                {/* BOTÓN PDF SOLO PARA ADMIN */}
                 {user?.email === ADMIN_EMAIL && (
                   <button 
                     onClick={generarPDF} 
@@ -249,8 +259,8 @@ function Dashboard() {
               </div>
             ) : (
               <div className="h-full flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-[2.5rem] p-10 opacity-30 text-center">
-                <FaLeaf size={40} className="mb-4" />
-                <p className="text-xs uppercase font-bold tracking-widest">Seleccione una actividad o realice un escaneo</p>
+                <FaLeaf size={40} className="mb-4 text-green-300" />
+                <p className="text-xs uppercase font-bold tracking-widest">Escanea una planta o selecciona del historial</p>
               </div>
             )}
           </div>
