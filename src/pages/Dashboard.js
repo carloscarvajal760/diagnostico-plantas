@@ -145,7 +145,7 @@ function Dashboard() {
           <img src={user?.photoURL || "https://via.placeholder.com/150"} alt="u" className="w-10 h-10 rounded-full border-2 border-white/20 shadow-md" />
           <div>
             <p className="text-green-300 text-[10px] font-bold uppercase tracking-widest">AranjuezPlant</p>
-            <p className="font-bold text-sm">Hola, {user?.displayName?.split(" ")[0] || "Admin"}</p>
+            <p className="font-bold text-sm">Hola, {user?.displayName?.split(" ")[0] || user?.email?.split("@")[0] || "Usuario"}</p>
           </div>
         </div>
         <button onClick={handleLogout} className="p-3 bg-white/10 rounded-2xl border border-white/10 active:scale-90"><FaSignOutAlt size={18} /></button>
