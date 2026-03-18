@@ -3,30 +3,46 @@
   <head>
     <meta charset="utf-8" />
 
-    <!-- Permite que la app sea responsive -->
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
 
-    <!-- Color de la barra del navegador -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+
     <meta name="theme-color" content="#2e7d32" />
 
-    <!-- Descripción -->
     <meta
       name="description"
-      content="Aplicación para el diagnóstico de enfermedades en plantas mediante redes neuronales"
+      content="Aplicación para el diagnóstico de enfermedades en plantas mediante redes neuronales - Vivero Aranjuez"
     />
 
-    <!-- Manifest PWA -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
 
-    <!-- Icono navegador -->
     <link rel="icon" href="%PUBLIC_URL%/icon-192.png" />
 
-    <title>AranjuezPlant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <title>AranjuezPlant | Diagnóstico Inteligente</title>
+
+    <style>
+      /* Evita el scroll horizontal molesto en móviles */
+      body {
+        overflow-x: hidden;
+        width: 100%;
+        position: relative;
+        font-family: 'Inter', sans-serif;
+      }
+    </style>
   </head>
 
   <body class="antialiased bg-gray-100">
-    <noscript>Necesitas habilitar JavaScript para usar esta app.</noscript>
+    <noscript>Necesitas habilitar JavaScript para usar esta aplicación de diagnóstico.</noscript>
 
     <div id="root"></div>
-  </body>
+
+    </body>
 </html>
