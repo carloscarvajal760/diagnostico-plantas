@@ -8,7 +8,7 @@ import { baseConocimiento } from "../data/tratamientos";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
-const ADMIN_EMAIL = "carloscarvajal760@gmail.com"; 
+const ADMIN_EMAIL = "admin@gmail.com"; 
 
 function Dashboard() {
   const navigate = useNavigate();
