@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { signOut } from "firebase/auth";
 import { auth, db } from "../firebase/firebaseConfig";
 import { collection, addDoc, serverTimestamp, query, getDocs, orderBy, limit } from "firebase/firestore";
-import { FaSignOutAlt, FaCamera, FaUpload, FaCheckCircle, FaBrain, FaLeaf, FaSeedling, FaExclamationTriangle, FaFilePdf, FaHistory, FaSync } from "react-icons/fa";
+import { FaSignOutAlt, FaCamera, FaUpload, FaCheckCircle, FaBrain, FaLeaf, FaSeedling, FaExclamationTriangle, FaFilePdf, FaHistory, FaSync, FaUserCircle } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { baseConocimiento } from "../data/tratamientos";
 import jsPDF from "jspdf";
@@ -431,7 +431,13 @@ function Dashboard() {
       {/* HEADER */}
       <div className="px-6 pt-10 pb-6 flex items-center justify-between max-w-6xl mx-auto">
         <div className="flex items-center gap-3">
-          <img src={user?.photoURL || "https://via.placeholder.com/150"} alt="u" className="w-10 h-10 rounded-full border-2 border-white/20 shadow-md" />
+          {user?.photoURL ? (
+            <img src={user.photoURL} alt="Usuario" className="w-10 h-10 rounded-full border-2 border-white/20 shadow-md object-cover" />
+          ) : (
+            <div className="w-10 h-10 rounded-full border-2 border-white/20 shadow-md bg-white/10 flex items-center justify-center">
+              <FaUserCircle className="text-white/80 text-2xl" />
+            </div>
+          )}
           <div>
             <p className="text-green-300 text-[10px] font-bold uppercase tracking-widest">AranjuezPlant</p>
             <p className="font-bold text-sm">Hola, {user?.displayName?.split(" ")[0] || user?.email?.split("@")[0] || "Usuario"}</p>
