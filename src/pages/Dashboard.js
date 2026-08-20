@@ -548,13 +548,48 @@ function Dashboard() {
                   <h3 className="text-3xl font-black uppercase tracking-tighter text-slate-800 leading-none mb-2">{result.disease}</h3>
                   <p className="text-[10px] text-slate-400 mb-6 font-bold uppercase tracking-widest italic">Responsable: {reporteUser}</p>
                   {baseConocimiento[result.disease] && (
-                    <div className="space-y-4 pt-6 border-t border-slate-100">
-                      <div className="bg-yellow-50 p-4 rounded-2xl border border-yellow-100">
-                        <p className="text-[10px] font-bold text-yellow-700 uppercase mb-2">Tratamiento Técnico</p>
-                        <p className="text-sm font-bold text-slate-800 italic leading-tight">"{baseConocimiento[result.disease].tratamiento}"</p>
-                      </div>
-                    </div>
-                  )}
+  <div className="space-y-4 pt-6 border-t border-slate-100">
+    {/* Encabezado con Nivel de Urgencia */}
+    <div className="flex items-center justify-between">
+      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+        Ficha Técnica
+      </h4>
+      <span
+        className={`text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full ${
+          baseConocimiento[result.disease].urgencia === "Critica"
+            ? "bg-red-100 text-red-700 border border-red-200"
+            : "bg-yellow-100 text-yellow-700 border border-yellow-200"
+        }`}
+      >
+        Urgencia: {baseConocimiento[result.disease].urgencia}
+      </span>
+    </div>
+
+    {/* Causa y Descripción */}
+    <div className="space-y-1">
+      <p className="text-xs text-slate-500">
+        <strong className="text-slate-700">Causa:</strong>{" "}
+        <span className="italic">{baseConocimiento[result.disease].causa}</span>
+      </p>
+      <p className="text-sm text-slate-600 leading-relaxed">
+        {baseConocimiento[result.disease].descripcion}
+      </p>
+    </div>
+
+    {/* Tarjeta de Tratamiento */}
+    <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200/60 shadow-sm">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span className="text-amber-600">💡</span>
+        <p className="text-[10px] font-bold text-amber-800 uppercase tracking-wide">
+          Tratamiento Recomendado
+        </p>
+      </div>
+      <p className="text-sm font-semibold text-slate-800 leading-snug">
+        "{baseConocimiento[result.disease].tratamiento}"
+      </p>
+    </div>
+  </div>
+)}
                 </div>
 
                 {/* BOTÓN PDF SOLO PARA ADMIN */}
