@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef } from "react";
 import { signOut } from "firebase/auth";
 import { auth, db } from "../firebase/firebaseConfig";
 import { collection, addDoc, serverTimestamp, query, getDocs, orderBy, limit } from "firebase/firestore";
-import { FaSignOutAlt, FaCamera, FaUpload, FaCheckCircle, FaBrain, FaLeaf, FaSeedling, FaExclamationTriangle, FaFilePdf, FaHistory, FaSync, FaUserCircle } from "react-icons/fa";
+import { FaSignOutAlt, FaCamera, FaUpload, FaCheckCircle, FaBrain, FaLeaf, FaSeedling, FaExclamationTriangle, FaFilePdf, FaHistory, FaSync, FaUserCircle, FaUsers, FaSearch, FaTimes } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { baseConocimiento } from "../data/tratamientos";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import UsuariosTable from "../components/UsuariosTable";
 
 const ADMIN_EMAIL = "admin@gmail.com";
 
@@ -17,6 +18,7 @@ function Dashboard() {
   const resultadosRef = useRef(null); // Referencia para el scroll automático
 
   // Estados
+  const [vistaActiva, setVistaActiva] = useState("diagnostico"); // "diagnostico" | "usuarios"
   const [user, setUser] = useState(null);
   const [file, setFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -24,6 +26,7 @@ function Dashboard() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
   const [historial, setHistorial] = useState([]);
+  const [busquedaHistorial, setBusquedaHistorial] = useState("");
   const [reporteUser, setReporteUser] = useState("");
   const [fechaDiagnostico, setFechaDiagnostico] = useState("");
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
@@ -429,7 +432,7 @@ function Dashboard() {
     <div className="min-h-screen bg-gradient-to-b from-green-800 to-emerald-950 pb-10 font-sans text-white">
 
       {/* HEADER */}
-      <div className="px-6 pt-10 pb-6 flex items-center justify-between max-w-6xl mx-auto">
+      <div className="px-6 pt-10 pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 max-w-6xl mx-auto">
         <div className="flex items-center gap-3">
           {user?.photoURL ? (
             <img src={user.photoURL} alt="Usuario" className="w-10 h-10 rounded-full border-2 border-white/20 shadow-md object-cover" />
@@ -443,17 +446,50 @@ function Dashboard() {
             <p className="font-bold text-sm">Hola, {user?.displayName?.split(" ")[0] || user?.email?.split("@")[0] || "Usuario"}</p>
           </div>
         </div>
-        <button onClick={handleLogout} className="p-3 bg-white/10 rounded-2xl border border-white/10 active:scale-90"><FaSignOutAlt size={18} /></button>
+
+        {/* Conmutador de Vistas / Pestañas */}
+        <div className="flex items-center justify-center bg-black/40 backdrop-blur-md p-1.5 rounded-2xl border border-white/10 shadow-lg">
+          <button
+            onClick={() => setVistaActiva("diagnostico")}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              vistaActiva === "diagnostico"
+                ? "bg-green-600 text-white shadow-md shadow-green-600/30"
+                : "text-white/70 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <FaLeaf className={vistaActiva === "diagnostico" ? "text-yellow-300" : ""} />
+            <span>Diagnóstico</span>
+          </button>
+
+          <button
+            onClick={() => setVistaActiva("usuarios")}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              vistaActiva === "usuarios"
+                ? "bg-green-600 text-white shadow-md shadow-green-600/30"
+                : "text-white/70 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <FaUsers className={vistaActiva === "usuarios" ? "text-yellow-300" : ""} />
+            <span>Usuarios</span>
+          </button>
+        </div>
+
+        <button onClick={handleLogout} className="self-end md:self-auto p-3 bg-white/10 rounded-2xl border border-white/10 active:scale-90" title="Cerrar Sesión">
+          <FaSignOutAlt size={18} />
+        </button>
       </div>
 
       <div className="p-4 max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {vistaActiva === "usuarios" ? (
+          <UsuariosTable currentUser={user} />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
           {/* LADO IZQUIERDO: SCANNER / HISTORIAL */}
           <div className="space-y-6">
             {user?.email === ADMIN_EMAIL ? (
               <div className="bg-slate-900/60 backdrop-blur-xl rounded-[2.5rem] p-6 border border-white/10 shadow-2xl">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xs font-black uppercase tracking-widest flex items-center gap-2 text-green-400">
                     <FaHistory /> ACTIVIDAD RECIENTE
                   </h2>
@@ -462,27 +498,70 @@ function Dashboard() {
                   </button>
                 </div>
 
-                <div className="space-y-3 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar">
-                  {historial.map((item) => (
-                    <div
-                      key={item.id}
-                      onClick={() => {
-                        setResult({ disease: item.enfermedad, confidence: item.confianza });
-                        setReporteUser(item.usuario);
-                        const fecha = item.fecha?.toDate().toLocaleString() || "Sin fecha";
-                        setFechaDiagnostico(fecha);
-                        setImagePreview(null);
-                        setTimeout(ejecutarScroll, 100); // Bajar al reporte al hacer clic
-                      }}
-                      className="bg-white/5 p-4 rounded-2xl border border-transparent hover:border-green-500 transition-all cursor-pointer group"
+                {/* BUSCADOR DE HISTORIAL */}
+                <div className="relative mb-4">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <FaSearch className="text-xs" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Buscar por enfermedad o responsable..."
+                    value={busquedaHistorial}
+                    onChange={(e) => setBusquedaHistorial(e.target.value)}
+                    className="w-full pl-9 pr-8 py-2.5 bg-white/5 border border-white/10 rounded-2xl text-xs text-white placeholder-slate-400 focus:outline-none focus:border-green-500 focus:bg-white/10 transition-all shadow-inner"
+                  />
+                  {busquedaHistorial && (
+                    <button
+                      onClick={() => setBusquedaHistorial("")}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-white transition-colors"
+                      title="Limpiar búsqueda"
                     >
-                      <div className="flex justify-between items-center">
-                        <p className="font-bold text-sm text-green-100 uppercase tracking-tighter">{item.enfermedad}</p>
-                        <span className="text-[9px] bg-green-900/50 text-green-300 px-3 py-1 rounded-full tracking-widest uppercase font-black">Ver</span>
+                      <FaTimes className="text-xs" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-3 max-h-[420px] overflow-y-auto pr-2 custom-scrollbar">
+                  {historial
+                    .filter((item) => {
+                      const q = busquedaHistorial.toLowerCase();
+                      return (
+                        (item.enfermedad || "").toLowerCase().includes(q) ||
+                        (item.usuario || "").toLowerCase().includes(q)
+                      );
+                    })
+                    .map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          setResult({ disease: item.enfermedad, confidence: item.confianza });
+                          setReporteUser(item.usuario);
+                          const fecha = item.fecha?.toDate().toLocaleString() || "Sin fecha";
+                          setFechaDiagnostico(fecha);
+                          setImagePreview(null);
+                          setTimeout(ejecutarScroll, 100); // Bajar al reporte al hacer clic
+                        }}
+                        className="bg-white/5 p-4 rounded-2xl border border-transparent hover:border-green-500 transition-all cursor-pointer group"
+                      >
+                        <div className="flex justify-between items-center">
+                          <p className="font-bold text-sm text-green-100 uppercase tracking-tighter">{item.enfermedad}</p>
+                          <span className="text-[9px] bg-green-900/50 text-green-300 px-3 py-1 rounded-full tracking-widest uppercase font-black">Ver</span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 mt-1 italic">Realizado por: {item.usuario}</p>
                       </div>
-                      <p className="text-[10px] text-slate-500 mt-1 italic">Realizado por: {item.usuario}</p>
+                    ))}
+
+                  {historial.filter((item) => {
+                    const q = busquedaHistorial.toLowerCase();
+                    return (
+                      (item.enfermedad || "").toLowerCase().includes(q) ||
+                      (item.usuario || "").toLowerCase().includes(q)
+                    );
+                  }).length === 0 && (
+                    <div className="text-center py-8 text-slate-400 text-xs">
+                      No se encontraron diagnósticos que coincidan con "{busquedaHistorial}".
                     </div>
-                  ))}
+                  )}
                 </div>
 
                 {/* NUEVO BOTÓN DE DESCARGA GLOBAL (SOLO ADMIN) */}
@@ -616,10 +695,11 @@ function Dashboard() {
           </div>
 
         </div>
-      </div>
-      <canvas ref={canvasRef} style={{ display: "none" }} />
+      )}
     </div>
-  );
+    <canvas ref={canvasRef} style={{ display: "none" }} />
+  </div>
+);
 }
 
 export default Dashboard;
