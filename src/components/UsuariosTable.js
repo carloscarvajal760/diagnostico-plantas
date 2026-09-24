@@ -68,6 +68,7 @@ const USUARIOS_DEMO = [
 ];
 
 export default function UsuariosTable({ currentUser }) {
+  const esAdmin = currentUser?.email === "admin@gmail.com";
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
@@ -86,33 +87,77 @@ export default function UsuariosTable({ currentUser }) {
     area: "Mantenimiento General"
   });
 
-  // Cargar usuarios de Firestore o localStorage
+  // Cargar usuarios de Firestore (colección usuarios + diagnosticos) o localStorage
   const cargarUsuarios = async () => {
     setLoading(true);
     try {
-      const snapshot = await getDocs(collection(db, "usuarios"));
-      if (!snapshot.empty) {
-        const lista = snapshot.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data()
-        }));
-        setUsuarios(lista);
-        localStorage.setItem("aranjuez_usuarios_cache", JSON.stringify(lista));
-      } else {
-        // Si está vacía en Firestore, sembramos datos demo
-        const cache = localStorage.getItem("aranjuez_usuarios_cache");
-        const iniciales = cache ? JSON.parse(cache) : USUARIOS_DEMO;
-        setUsuarios(iniciales);
+      const mapaUsuarios = new Map();
 
-        // Guardamos los demo en Firestore si hay permisos
-        try {
-          for (const u of iniciales) {
-            await setDoc(doc(db, "usuarios", u.id), u, { merge: true });
-          }
-        } catch (e) {
-          console.warn("Sembrado en Firestore omitido por permisos locales:", e);
+      // 1. Obtener los que ya estén guardados en la colección 'usuarios'
+      try {
+        const snapshot = await getDocs(collection(db, "usuarios"));
+        if (!snapshot.empty) {
+          snapshot.docs.forEach((docSnap) => {
+            const data = docSnap.data();
+            const clave = (data.email || docSnap.id).toLowerCase();
+            mapaUsuarios.set(clave, {
+              id: docSnap.id,
+              ...data
+            });
+          });
         }
+      } catch (errUsuarios) {
+        console.warn("Lectura de colección 'usuarios':", errUsuarios);
       }
+
+      // 2. Extraer usuarios históricos que hayan realizado diagnósticos
+      try {
+        const diagSnapshot = await getDocs(collection(db, "diagnosticos"));
+        diagSnapshot.docs.forEach((d) => {
+          const data = d.data();
+          const usu = data.usuario;
+          if (usu && typeof usu === "string") {
+            const email = usu.includes("@")
+              ? usu.toLowerCase()
+              : `${usu.toLowerCase().replace(/\s+/g, ".")}@vivero.bo`;
+
+            if (!mapaUsuarios.has(email)) {
+              const idGenerado = `user-diag-${Math.abs(
+                email.split("").reduce((acc, char) => (acc << 5) - acc + char.charCodeAt(0), 0)
+              )}`;
+              const fechaIso = data.fecha?.toDate
+                ? data.fecha.toDate().toISOString().split("T")[0]
+                : "2026-03-01";
+
+              const nuevoUser = {
+                id: idGenerado,
+                email: email,
+                nombre: usu.includes("@") ? usu.split("@")[0] : usu,
+                rol: email === "admin@gmail.com" ? "Administrador" : "Jardinero / Operador",
+                estado: "Activo",
+                area: "Campo / Diagnóstico",
+                telefono: "",
+                fechaRegistro: fechaIso
+              };
+              mapaUsuarios.set(email, nuevoUser);
+
+              // Guardar en Firestore para persistirlo de ahora en adelante
+              setDoc(doc(db, "usuarios", idGenerado), nuevoUser, { merge: true }).catch(() => { });
+            }
+          }
+        });
+      } catch (errDiag) {
+        console.warn("Extracción de usuarios desde diagnosticos:", errDiag);
+      }
+
+      // 3. Si no hay ningún usuario aún, usar los demo
+      if (mapaUsuarios.size === 0) {
+        USUARIOS_DEMO.forEach((u) => mapaUsuarios.set(u.email.toLowerCase(), u));
+      }
+
+      const listaFinal = Array.from(mapaUsuarios.values());
+      setUsuarios(listaFinal);
+      localStorage.setItem("aranjuez_usuarios_cache", JSON.stringify(listaFinal));
     } catch (err) {
       console.warn("Error leyendo Firestore, usando datos en caché:", err);
       const cache = localStorage.getItem("aranjuez_usuarios_cache");
@@ -271,12 +316,14 @@ export default function UsuariosTable({ currentUser }) {
               <FaSyncAlt className={loading ? "animate-spin" : ""} />
             </button>
 
-            <button
-              onClick={() => setMostrarModalNuevo(true)}
-              className="py-3 px-5 bg-green-600 hover:bg-green-500 text-white rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-green-600/30 transition-all active:scale-95"
-            >
-              <FaUserPlus /> Nuevo Usuario
-            </button>
+            {esAdmin && (
+              <button
+                onClick={() => setMostrarModalNuevo(true)}
+                className="py-3 px-5 bg-green-600 hover:bg-green-500 text-white rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-green-600/30 transition-all active:scale-95"
+              >
+                <FaUserPlus /> Nuevo Usuario
+              </button>
+            )}
           </div>
         </div>
 
@@ -320,20 +367,20 @@ export default function UsuariosTable({ currentUser }) {
                 <th className="py-4 px-4">Rol en Vivero</th>
                 <th className="py-4 px-4 hidden md:table-cell">Área / Sección</th>
                 <th className="py-4 px-4">Estado</th>
-                <th className="py-4 px-4 text-right">Acciones</th>
+                {esAdmin && <th className="py-4 px-4 text-right">Acciones</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-sm">
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="py-12 text-center text-slate-400">
+                  <td colSpan={esAdmin ? 5 : 4} className="py-12 text-center text-slate-400">
                     <FaSyncAlt className="animate-spin text-2xl mx-auto mb-2 text-green-400" />
                     Cargando usuarios...
                   </td>
                 </tr>
               ) : usuariosFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="py-12 text-center text-slate-400">
+                  <td colSpan={esAdmin ? 5 : 4} className="py-12 text-center text-slate-400">
                     No se encontraron usuarios que coincidan con la búsqueda.
                   </td>
                 </tr>
@@ -377,14 +424,14 @@ export default function UsuariosTable({ currentUser }) {
                     <td className="py-4 px-4 whitespace-nowrap">
                       <span
                         className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full ${u.estado === "Activo"
-                            ? "text-emerald-400 bg-emerald-500/10"
-                            : "text-slate-400 bg-white/5"
+                          ? "text-emerald-400 bg-emerald-500/10"
+                          : "text-slate-400 bg-white/5"
                           }`}
                       >
                         <span
                           className={`w-2 h-2 rounded-full ${u.estado === "Activo"
-                              ? "bg-emerald-400 animate-pulse"
-                              : "bg-slate-500"
+                            ? "bg-emerald-400 animate-pulse"
+                            : "bg-slate-500"
                             }`}
                         ></span>
                         {u.estado || "Activo"}
@@ -392,16 +439,18 @@ export default function UsuariosTable({ currentUser }) {
                     </td>
 
                     {/* Acciones */}
-                    <td className="py-4 px-4 text-right">
-                      <button
-                        onClick={() => setUsuarioEditando({ ...u })}
-                        className="p-2.5 bg-white/10 hover:bg-green-600 hover:text-white rounded-xl text-green-300 transition-all active:scale-95 inline-flex items-center gap-1.5 text-xs font-bold shadow-sm"
-                        title="Editar Usuario"
-                      >
-                        <FaUserEdit />
-                        <span className="hidden sm:inline">Editar</span>
-                      </button>
-                    </td>
+                    {esAdmin && (
+                      <td className="py-4 px-4 text-right">
+                        <button
+                          onClick={() => setUsuarioEditando({ ...u })}
+                          className="p-2.5 bg-white/10 hover:bg-green-600 hover:text-white rounded-xl text-green-300 transition-all active:scale-95 inline-flex items-center gap-1.5 text-xs font-bold shadow-sm"
+                          title="Editar Usuario"
+                        >
+                          <FaUserEdit />
+                          <span className="hidden sm:inline">Editar</span>
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}

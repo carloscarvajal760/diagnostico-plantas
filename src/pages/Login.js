@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth, provider } from "../firebase/firebaseConfig";
+import { auth, provider, db } from "../firebase/firebaseConfig";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
 } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -17,12 +18,36 @@ const Login = () => {
   // URL del logo de Google oficial (Firebase UI)
   const googleIconUrl = "https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg";
 
+  // Función auxiliar para registrar usuario en Firestore
+  const sincronizarUsuarioFirestore = async (user) => {
+    try {
+      const userDocRef = doc(db, "usuarios", user.uid);
+      const esAdmin = user.email === "admin@gmail.com";
+      await setDoc(
+        userDocRef,
+        {
+          id: user.uid,
+          email: user.email,
+          nombre: user.displayName || user.email.split("@")[0],
+          rol: esAdmin ? "Administrador" : "Jardinero / Operador",
+          estado: "Activo",
+          fechaRegistro: new Date().toISOString().split("T")[0],
+          area: esAdmin ? "Dirección de Vivero" : "Mantenimiento General"
+        },
+        { merge: true }
+      );
+    } catch (err) {
+      console.warn("Sincronización con Firestore omitida:", err);
+    }
+  };
+
   // Login con Google
   const handleGoogleLogin = async () => {
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
       localStorage.setItem("user", JSON.stringify(user));
+      await sincronizarUsuarioFirestore(user);
       navigate("/dashboard");
     } catch (err) {
       setError("Error al conectar con Google");
@@ -42,6 +67,7 @@ const Login = () => {
       }
       const user = userCredential.user;
       localStorage.setItem("user", JSON.stringify(user));
+      await sincronizarUsuarioFirestore(user);
       navigate("/dashboard");
     } catch (err) {
       setError("Credenciales incorrectas o error de conexión");
@@ -51,22 +77,22 @@ const Login = () => {
   return (
     // FONDO VERDE RESTAURADO: Se aplica a toda la pantalla
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-green-500 to-green-700 p-6 font-sans">
-      
+
       {/* Contenedor tipo Tarjeta Móvil (Se mantiene blanco para contrastar con el fondo) */}
       <div className="w-full max-w-sm bg-white rounded-[2.5rem] shadow-2xl shadow-black/20 p-8 border border-gray-100">
-        
+
         {/* Espacio para el Logo */}
         <div className="flex flex-col items-center mb-8">
           <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-4 shadow-inner">
             {/* Ícono temporal de planta - Reemplázalo por tu logo real más adelante */}
-            <img 
-              src="/emaverde.jpg" 
-              alt="Logo Vivero" 
+            <img
+              src="/emaverde.jpg"
+              alt="Logo Vivero"
               className="w-25 h-25 object-contain"
             />
           </div>
           <h1 className="text-xl font-extrabold text-green-800 text-center uppercase tracking-tight">
-            Vivero Municipal <br/> de Aranjuez
+            Vivero Municipal <br /> de Aranjuez
           </h1>
           <p className="text-gray-500 text-sm mt-1">Diagnóstico de Plantas</p>
         </div>
@@ -115,16 +141,16 @@ const Login = () => {
 
         {/* BOTÓN DE GOOGLE CORREGIDO */}
         <button
-  onClick={handleGoogleLogin}
-  className="w-full py-4 bg-white border border-gray-200 text-gray-700 font-semibold rounded-2xl flex items-center justify-center gap-3 hover:bg-gray-50 active:scale-95 transition-all text-sm"
->
-  <img 
-    src="https://www.gstatic.com/images/branding/product/1x/googleg_48dp.png" 
-    alt="Google" 
-    className="w-5 h-5" 
-  />
-  Google
-</button>
+          onClick={handleGoogleLogin}
+          className="w-full py-4 bg-white border border-gray-200 text-gray-700 font-semibold rounded-2xl flex items-center justify-center gap-3 hover:bg-gray-50 active:scale-95 transition-all text-sm"
+        >
+          <img
+            src="https://www.gstatic.com/images/branding/product/1x/googleg_48dp.png"
+            alt="Google"
+            className="w-5 h-5"
+          />
+          Google
+        </button>
 
         <button
           className="w-full mt-6 text-sm font-medium text-green-700 hover:text-green-800 transition-colors"
