@@ -39,7 +39,7 @@ const USUARIOS_DEMO = [
     id: "user-agronomo-02",
     email: "m.rodriguez@vivero.bo",
     nombre: "Ing. Mariana Rodríguez",
-    rol: "Técnico Agrónomo",
+    rol: "Jardinero / Operador",
     estado: "Activo",
     telefono: "+591 71234567",
     area: "Diagnóstico e Invernaderos",
@@ -352,7 +352,6 @@ export default function UsuariosTable({ currentUser }) {
             >
               <option value="todos">Todos los Roles</option>
               <option value="Administrador">Solo Administradores</option>
-              <option value="Agrónomo">Solo Técnicos Agrónomos</option>
               <option value="Jardinero">Solo Jardineros / Campo</option>
             </select>
           </div>
@@ -519,7 +518,6 @@ export default function UsuariosTable({ currentUser }) {
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white text-sm focus:outline-none focus:border-green-500 transition-all [&>option]:bg-slate-900"
                 >
                   <option value="Administrador">Administrador (Acceso Total y Reportes)</option>
-                  <option value="Técnico Agrónomo">Técnico Agrónomo (Diagnóstico y Fichas)</option>
                   <option value="Jardinero / Operador">Jardinero / Operador (Scanner de Campo)</option>
                 </select>
               </div>
@@ -681,7 +679,6 @@ export default function UsuariosTable({ currentUser }) {
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white text-sm focus:outline-none focus:border-green-500 transition-all [&>option]:bg-slate-900"
                 >
                   <option value="Administrador">Administrador</option>
-                  <option value="Técnico Agrónomo">Técnico Agrónomo</option>
                   <option value="Jardinero / Operador">Jardinero / Operador</option>
                 </select>
               </div>

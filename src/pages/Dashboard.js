@@ -584,38 +584,9 @@ function Dashboard() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-            {/* LADO IZQUIERDO: SCANNER / HISTORIAL */}
+            {/* LADO IZQUIERDO: HISTORIAL (ADMIN) / SCANNER (OPERADOR) */}
             <div className="space-y-6">
-              {/* PESTAÑAS EXCLUSIVAS PARA ADMIN (SCANNER VS HISTORIAL) */}
-              {user?.email === ADMIN_EMAIL && (
-                <div className="flex bg-black/40 backdrop-blur-md p-1.5 rounded-2xl border border-white/10 shadow-lg">
-                  <button
-                    type="button"
-                    onClick={() => setAdminTab("scanner")}
-                    className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
-                      adminTab === "scanner"
-                        ? "bg-green-600 text-white shadow-md shadow-green-600/30"
-                        : "text-white/60 hover:text-white hover:bg-white/5"
-                    }`}
-                  >
-                    <FaCamera /> Scanner IA (3 Fotos)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAdminTab("historial")}
-                    className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
-                      adminTab === "historial"
-                        ? "bg-green-600 text-white shadow-md shadow-green-600/30"
-                        : "text-white/60 hover:text-white hover:bg-white/5"
-                    }`}
-                  >
-                    <FaHistory /> Actividad Reciente
-                  </button>
-                </div>
-              )}
-
-              {/* VISTA 1: ACTIVIDAD RECIENTE (SOLO SI ADMIN LO SELECCIONA) */}
-              {user?.email === ADMIN_EMAIL && adminTab === "historial" ? (
+              {user?.email === ADMIN_EMAIL ? (
                 <div className="bg-slate-900/60 backdrop-blur-xl rounded-[2.5rem] p-6 border border-white/10 shadow-2xl">
                   <div className="flex justify-between items-center mb-4">
                     <h2 className="text-xs font-black uppercase tracking-widest flex items-center gap-2 text-green-400">
