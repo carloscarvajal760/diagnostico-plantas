@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { signOut } from "firebase/auth";
 import { auth, db } from "../firebase/firebaseConfig";
 import { collection, addDoc, serverTimestamp, query, getDocs, orderBy, limit } from "firebase/firestore";
-import { FaSignOutAlt, FaCamera, FaUpload, FaCheckCircle, FaBrain, FaLeaf, FaSeedling, FaExclamationTriangle, FaFilePdf, FaHistory, FaSync, FaUserCircle, FaUsers, FaSearch, FaTimes } from "react-icons/fa";
+import { FaSignOutAlt, FaCamera, FaUpload, FaCheckCircle, FaBrain, FaLeaf, FaSeedling, FaExclamationTriangle, FaFilePdf, FaHistory, FaSync, FaUserCircle, FaUsers, FaSearch, FaTimes, FaImages, FaTrash, FaPlus, FaLayerGroup, FaLock, FaInfoCircle } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { baseConocimiento } from "../data/tratamientos";
 import jsPDF from "jspdf";
@@ -19,9 +19,12 @@ function Dashboard() {
 
   // Estados
   const [vistaActiva, setVistaActiva] = useState("diagnostico"); // "diagnostico" | "usuarios"
+  const [adminTab, setAdminTab] = useState("scanner"); // "scanner" | "historial" (para que admin pueda subir fotos o ver historial)
   const [user, setUser] = useState(null);
   const [file, setFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [imagenes, setImagenes] = useState([]); // Array de 3 fotos: [{ file, preview, id, label }]
+  const [fotoActivaIdx, setFotoActivaIdx] = useState(0);
   const [result, setResult] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
@@ -31,6 +34,22 @@ function Dashboard() {
   const [fechaDiagnostico, setFechaDiagnostico] = useState("");
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isGeneratingGlobalPDF, setIsGeneratingGlobalPDF] = useState(false);
+
+  // Estado para Modal de Alerta / Aviso bonito
+  const [modalAlerta, setModalAlerta] = useState({
+    visible: false,
+    titulo: "",
+    mensaje: "",
+    tipo: "advertencia" // "advertencia" | "error" | "info"
+  });
+
+  const mostrarAviso = (mensaje, titulo = "Atención", tipo = "advertencia") => {
+    setModalAlerta({ visible: true, titulo, mensaje, tipo });
+  };
+
+  const cerrarAviso = () => {
+    setModalAlerta(prev => ({ ...prev, visible: false }));
+  };
 
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
@@ -71,35 +90,113 @@ function Dashboard() {
     }
   };
 
-  // --- LÓGICA DE CÁMARA ---
+  // --- LÓGICA DE CÁMARA (HASTA 3 MUESTRAS) ---
   const startCamera = async () => {
+    if (imagenes.length >= 3) {
+      mostrarAviso("Ya tienes las 3 fotos requeridas. Si deseas capturar otra, elimina una de las muestras existentes.", "Límite de Muestras", "info");
+      return;
+    }
     setCameraActive(true);
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-    videoRef.current.srcObject = stream;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      if (videoRef.current) videoRef.current.srcObject = stream;
+    } catch (err) {
+      console.error("Error de cámara:", err);
+      mostrarAviso("No se pudo iniciar la cámara. Revisa los permisos o sube fotos desde galería.", "Permiso de Cámara", "error");
+      setCameraActive(false);
+    }
   };
 
   const capturePhoto = () => {
     const canvas = canvasRef.current;
     const video = videoRef.current;
-    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    if (!canvas || !video) return;
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
     canvas.getContext("2d").drawImage(video, 0, 0);
     canvas.toBlob((blob) => {
-      setFile(new File([blob], "photo.jpg", { type: "image/jpeg" }));
-      setImagePreview(URL.createObjectURL(blob));
+      const idx = imagenes.length;
+      const etiquetas = ["Muestra 1", "Muestra 2", "Muestra 3"];
+      const nuevaFoto = {
+        file: new File([blob], `muestra_${idx + 1}.jpg`, { type: "image/jpeg" }),
+        preview: URL.createObjectURL(blob),
+        id: `cam_${Date.now()}`,
+        label: etiquetas[idx] || `Muestra ${idx + 1}`
+      };
+      const nuevas = [...imagenes, nuevaFoto].slice(0, 3);
+      setImagenes(nuevas);
+      setFile(nuevas[0].file);
+      setImagePreview(nuevas[0].preview);
+      setFotoActivaIdx(nuevas.length - 1);
     }, "image/jpeg");
-    video.srcObject.getTracks().forEach(t => t.stop());
+    if (video.srcObject) {
+      video.srcObject.getTracks().forEach(t => t.stop());
+    }
     setCameraActive(false);
   };
 
-  // --- ANÁLISIS E IA ---
+  const stopCamera = () => {
+    if (videoRef.current?.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(t => t.stop());
+    }
+    setCameraActive(false);
+  };
+
+  // --- SUBIDA DESDE GALERÍA (HASTA 3 FOTOS) ---
+  const handleUploadGaleria = (e) => {
+    const selectedFiles = Array.from(e.target.files || []);
+    if (!selectedFiles.length) return;
+    const espacioDisponible = 3 - imagenes.length;
+    if (espacioDisponible <= 0) {
+      mostrarAviso("Ya has cargado las 3 fotos requeridas. Si deseas cambiar alguna, primero elimínala con el botón ✕.", "Límite de Muestras", "info");
+      e.target.value = "";
+      return;
+    }
+    const etiquetas = ["Muestra 1", "Muestra 2", "Muestra 3"];
+    const nuevas = selectedFiles.slice(0, espacioDisponible).map((f, i) => {
+      const idx = imagenes.length + i;
+      return {
+        file: f,
+        preview: URL.createObjectURL(f),
+        id: `gal_${Date.now()}_${i}`,
+        label: etiquetas[idx] || `Muestra ${idx + 1}`
+      };
+    });
+    const combinadas = [...imagenes, ...nuevas].slice(0, 3);
+    setImagenes(combinadas);
+    setFile(combinadas[0].file);
+    setImagePreview(combinadas[0].preview);
+    setFotoActivaIdx(combinadas.length - 1);
+    e.target.value = "";
+  };
+
+  const eliminarFoto = (idx) => {
+    const filtradas = imagenes.filter((_, i) => i !== idx);
+    setImagenes(filtradas);
+    if (filtradas.length > 0) {
+      setFile(filtradas[0].file);
+      setImagePreview(filtradas[0].preview);
+      setFotoActivaIdx(Math.min(fotoActivaIdx, filtradas.length - 1));
+    } else {
+      setFile(null);
+      setImagePreview(null);
+      setFotoActivaIdx(0);
+    }
+  };
+
+  // --- ANÁLISIS E IA (OBLIGA A 3 FOTOS, ENVÍA 1 A LA API) ---
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!file) return;
+    if (imagenes.length < 3) {
+      mostrarAviso("Debes subir obligatoriamente 3 fotografías de la planta afectada para que la Inteligencia Artificial realice la triangulación diagnóstica.", "Muestras Incompletas", "advertencia");
+      return;
+    }
     setIsAnalyzing(true);
     setResult(null);
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      // Se envía 1 sola imagen como siempre a la IA de Hugging Face
+      formData.append("file", imagenes[0].file);
       const res = await fetch("https://carloscarvajal760-diagnostico-plantas-api.hf.space/predict", { method: "POST", body: formData });
       const data = await res.json();
       const nombreLimpio = data.class_name.replaceAll("_", " ");
@@ -110,7 +207,9 @@ function Dashboard() {
       setFechaDiagnostico(new Date().toLocaleString());
       guardarEnNube(resObj);
       setTimeout(ejecutarScroll, 300); // Bajar al resultado tras analizar
-    } catch (err) { alert("Error de conexión con la IA"); }
+    } catch (err) {
+      mostrarAviso("Hubo un inconveniente al conectar con el servidor de Inteligencia Artificial. Por favor revisa tu conexión a internet e inténtalo nuevamente.", "Error de Conexión IA", "error");
+    }
     finally { setIsAnalyzing(false); }
   };
 
@@ -487,7 +586,36 @@ function Dashboard() {
 
             {/* LADO IZQUIERDO: SCANNER / HISTORIAL */}
             <div className="space-y-6">
-              {user?.email === ADMIN_EMAIL ? (
+              {/* PESTAÑAS EXCLUSIVAS PARA ADMIN (SCANNER VS HISTORIAL) */}
+              {user?.email === ADMIN_EMAIL && (
+                <div className="flex bg-black/40 backdrop-blur-md p-1.5 rounded-2xl border border-white/10 shadow-lg">
+                  <button
+                    type="button"
+                    onClick={() => setAdminTab("scanner")}
+                    className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
+                      adminTab === "scanner"
+                        ? "bg-green-600 text-white shadow-md shadow-green-600/30"
+                        : "text-white/60 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    <FaCamera /> Scanner IA (3 Fotos)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAdminTab("historial")}
+                    className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
+                      adminTab === "historial"
+                        ? "bg-green-600 text-white shadow-md shadow-green-600/30"
+                        : "text-white/60 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    <FaHistory /> Actividad Reciente
+                  </button>
+                </div>
+              )}
+
+              {/* VISTA 1: ACTIVIDAD RECIENTE (SOLO SI ADMIN LO SELECCIONA) */}
+              {user?.email === ADMIN_EMAIL && adminTab === "historial" ? (
                 <div className="bg-slate-900/60 backdrop-blur-xl rounded-[2.5rem] p-6 border border-white/10 shadow-2xl">
                   <div className="flex justify-between items-center mb-4">
                     <h2 className="text-xs font-black uppercase tracking-widest flex items-center gap-2 text-green-400">
@@ -564,7 +692,7 @@ function Dashboard() {
                       )}
                   </div>
 
-                  {/* NUEVO BOTÓN DE DESCARGA GLOBAL (SOLO ADMIN) */}
+                  {/* BOTÓN DE DESCARGA GLOBAL (SOLO ADMIN) */}
                   <div className="mt-4 pt-4 border-t border-white/10">
                     <button
                       onClick={generarReporteGlobal}
@@ -580,29 +708,237 @@ function Dashboard() {
                   </div>
                 </div>
               ) : (
-                /* VISTA JARDINERO (SCANNER) */
+                /* VISTA SCANNER MULTI-MUESTRAS (3 FOTOS) - DISPONIBLE PARA TODOS */
                 <div className="bg-white/10 backdrop-blur-xl rounded-[2.5rem] shadow-2xl p-6 border border-white/20">
-                  <div className="flex items-center justify-center gap-2 mb-6 text-yellow-400">
-                    <FaSeedling className="animate-bounce" />
-                    <h2 className="text-xs font-black uppercase tracking-widest text-white">Scanner de Campo</h2>
+                  {/* Encabezado del Scanner */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2 text-yellow-400">
+                      <FaSeedling className="animate-bounce text-sm" />
+                      <h2 className="text-xs font-black uppercase tracking-widest text-white">Scanner de Campo IA</h2>
+                    </div>
+                    <span className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full border transition-all ${
+                      imagenes.length === 3
+                        ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 animate-pulse shadow-md shadow-emerald-500/20"
+                        : "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                    }`}>
+                      {imagenes.length}/3 Muestras
+                    </span>
                   </div>
-                  <div className="relative overflow-hidden rounded-[2rem] bg-black/30 aspect-square mb-6 border border-white/10">
-                    {cameraActive ? <video ref={videoRef} autoPlay className="w-full h-full object-cover" /> :
-                      imagePreview ? <img src={imagePreview} alt="p" className="w-full h-full object-cover animate-in fade-in" /> :
-                        <div className="flex flex-col items-center justify-center h-full opacity-20"><FaLeaf size={50} /></div>}
-                    {cameraActive && <button onClick={capturePhoto} className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white text-green-700 px-6 py-2 rounded-full font-bold text-xs shadow-2xl">CAPTURAR</button>}
+
+                  {/* Barra de progreso de muestras */}
+                  <div className="mb-4">
+                    <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                      <span>Triangulación Multi-Ángulo</span>
+                      <span className={imagenes.length === 3 ? "text-emerald-400" : "text-amber-300"}>
+                        {imagenes.length === 3 ? "Completado (100%)" : `${imagenes.length} de 3 fotos cargadas`}
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-black/40 rounded-full overflow-hidden p-0.5 border border-white/10">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          imagenes.length === 3
+                            ? "bg-gradient-to-r from-emerald-500 to-green-400"
+                            : imagenes.length === 2
+                            ? "bg-gradient-to-r from-yellow-500 to-amber-400"
+                            : imagenes.length === 1
+                            ? "bg-yellow-500"
+                            : "w-0"
+                        }`}
+                        style={{ width: `${(imagenes.length / 3) * 100}%` }}
+                      ></div>
+                    </div>
                   </div>
+
+                  {/* VISOR PRINCIPAL DINÁMICO (Optimizado para móvil) */}
+                  <div className="relative overflow-hidden rounded-[2rem] bg-black/40 aspect-square sm:aspect-[4/3] mb-4 border border-white/10 shadow-inner flex items-center justify-center">
+                    {cameraActive ? (
+                      <>
+                        <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+                        <div className="absolute inset-x-0 bottom-4 flex justify-center gap-3 px-4 z-10">
+                          <button
+                            type="button"
+                            onClick={stopCamera}
+                            className="bg-black/70 backdrop-blur-md text-white text-xs px-4 py-2.5 rounded-full font-bold border border-white/20 active:scale-95"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={capturePhoto}
+                            className="bg-yellow-400 text-green-950 px-6 py-2.5 rounded-full font-black text-xs shadow-2xl active:scale-95 flex items-center gap-2 uppercase tracking-wider"
+                          >
+                            <FaCamera /> Capturar ({imagenes.length + 1}/3)
+                          </button>
+                        </div>
+                      </>
+                    ) : imagenes.length > 0 ? (
+                      <div className="relative w-full h-full group">
+                        <img
+                          src={imagenes[fotoActivaIdx]?.preview || imagenes[0].preview}
+                          alt="Muestra activa"
+                          className="w-full h-full object-cover animate-in fade-in duration-300"
+                        />
+                        {/* Etiqueta flotante */}
+                        <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-green-300 border border-white/10">
+                          {imagenes[fotoActivaIdx]?.label || `Muestra ${fotoActivaIdx + 1}`}
+                        </div>
+                        {/* Botón eliminar la foto activa */}
+                        <button
+                          type="button"
+                          onClick={() => eliminarFoto(fotoActivaIdx)}
+                          className="absolute top-3 right-3 p-2.5 bg-red-600/80 hover:bg-red-600 text-white rounded-full text-xs shadow-lg transition-all active:scale-90"
+                          title="Eliminar esta muestra"
+                        >
+                          <FaTrash />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center p-6 text-center opacity-70">
+                        <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-3 text-green-400 shadow-inner">
+                          <FaImages size={28} />
+                        </div>
+                        <p className="text-xs font-bold text-slate-100">Se requieren 3 fotografías</p>
+                        <p className="text-[10px] text-slate-300 mt-1 max-w-xs">
+                          Toma o sube 3 muestras de la planta (Muestra 1, 2 y 3) para activar el diagnóstico.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* CARRUSEL / PANEL DESLIZANTE DE LAS 3 MUESTRAS (MOBILE FIRST) */}
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-300 mb-2">
+                      <span className="flex items-center gap-1.5"><FaLayerGroup className="text-green-400 text-xs" /> Muestras requeridas (3):</span>
+                      <span className="text-[10px] text-slate-400 italic">Toca para previsualizar</span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2.5">
+                      {[0, 1, 2].map((idx) => {
+                        const img = imagenes[idx];
+                        const labels = ["Muestra 1", "Muestra 2", "Muestra 3"];
+                        return (
+                          <div
+                            key={idx}
+                            onClick={() => {
+                              if (img) setFotoActivaIdx(idx);
+                            }}
+                            className={`relative rounded-2xl p-1.5 border-2 transition-all cursor-pointer ${
+                              img
+                                ? fotoActivaIdx === idx
+                                ? "border-green-400 bg-green-500/15 shadow-lg shadow-green-500/20 scale-[1.02]"
+                                : "border-white/15 bg-white/5 hover:border-white/30"
+                              : "border-dashed border-white/20 bg-white/[0.03] hover:bg-white/5"
+                            }`}
+                          >
+                            {img ? (
+                              <div className="relative aspect-square rounded-xl overflow-hidden shadow-inner">
+                                <img src={img.preview} alt={`slot-${idx}`} className="w-full h-full object-cover" />
+                                <span className="absolute top-1 left-1 bg-green-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md shadow">
+                                  ✓ #{idx + 1}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    eliminarFoto(idx);
+                                  }}
+                                  className="absolute top-1 right-1 bg-black/80 hover:bg-red-600 text-white w-4 h-4 rounded-full flex items-center justify-center text-[9px] shadow"
+                                  title="Quitar"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ) : (
+                              <label className="flex flex-col items-center justify-center aspect-square rounded-xl cursor-pointer transition-all text-slate-400 hover:text-white">
+                                <FaPlus className="text-xs mb-1 text-green-400" />
+                                <span className="text-[9px] font-bold text-center leading-tight">Muestra {idx + 1}</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleUploadGaleria}
+                                  className="hidden"
+                                />
+                              </label>
+                            )}
+                            <p className="text-[9px] font-bold text-slate-300 text-center mt-1 truncate">
+                              {labels[idx]}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* BOTONES DE CAPTURA (CÁMARA Y GALERÍA) */}
                   {!cameraActive && (
-                    <div className="grid grid-cols-2 gap-4 mb-6">
-                      <button onClick={startCamera} className="flex flex-col items-center py-4 bg-white text-green-900 rounded-3xl font-black text-[10px] uppercase shadow-lg active:scale-95 transition-all"><FaCamera size={20} className="mb-1" /> Cámara</button>
-                      <label className="flex flex-col items-center py-4 bg-green-500 text-white rounded-3xl font-black text-[10px] uppercase shadow-lg cursor-pointer active:scale-95 transition-all"><FaUpload size={20} className="mb-1" /> Galería<input type="file" accept="image/*" onChange={(e) => {
-                        const f = e.target.files[0]; if (f) { setFile(f); setImagePreview(URL.createObjectURL(f)); }
-                      }} className="hidden" /></label>
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      <button
+                        type="button"
+                        onClick={startCamera}
+                        disabled={imagenes.length >= 3}
+                        className={`flex flex-col items-center justify-center py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-wider shadow-lg active:scale-95 transition-all ${
+                          imagenes.length >= 3
+                            ? "bg-white/10 text-white/30 cursor-not-allowed"
+                            : "bg-white text-green-950 hover:bg-slate-100"
+                        }`}
+                      >
+                        <FaCamera size={18} className="mb-1 text-green-700" />
+                        <span>Tomar Foto</span>
+                      </button>
+
+                      <label
+                        className={`flex flex-col items-center justify-center py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-wider shadow-lg active:scale-95 transition-all cursor-pointer ${
+                          imagenes.length >= 3
+                            ? "bg-white/10 text-white/30 cursor-not-allowed pointer-events-none"
+                            : "bg-gradient-to-r from-emerald-600 to-green-600 text-white hover:from-emerald-500 hover:to-green-500"
+                        }`}
+                      >
+                        <FaUpload size={18} className="mb-1" />
+                        <span>Subir Galería</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          disabled={imagenes.length >= 3}
+                          onChange={handleUploadGaleria}
+                          className="hidden"
+                        />
+                      </label>
                     </div>
                   )}
-                  <button onClick={handleSubmit} disabled={!file || isAnalyzing} className={`w-full py-5 rounded-[1.5rem] font-black uppercase text-xs tracking-widest transition-all ${!file || isAnalyzing ? "bg-white/5 text-white/20" : "bg-yellow-400 text-green-950 shadow-xl shadow-yellow-400/20"}`}>
-                    {isAnalyzing ? "Analizando IA..." : "Iniciar Diagnóstico"}
-                  </button>
+
+                  {/* BOTÓN PRINCIPAL DE DIAGNÓSTICO (OBLIGA A 3 FOTOS) */}
+                  <div className="space-y-2">
+                    <button
+                      onClick={handleSubmit}
+                      disabled={imagenes.length < 3 || isAnalyzing}
+                      className={`w-full py-4 rounded-2xl font-black uppercase text-xs tracking-wider transition-all shadow-xl flex items-center justify-center gap-2 ${
+                        imagenes.length < 3 || isAnalyzing
+                          ? "bg-white/10 text-white/30 cursor-not-allowed border border-white/5"
+                          : "bg-gradient-to-r from-yellow-400 to-amber-400 text-green-950 shadow-yellow-400/20 hover:scale-[1.02] active:scale-95 animate-pulse"
+                      }`}
+                    >
+                      {isAnalyzing ? (
+                        <>
+                          <FaSync className="animate-spin text-sm" /> Analizando 3 Muestras con IA...
+                        </>
+                      ) : imagenes.length < 3 ? (
+                        <>
+                          <FaLock className="text-xs" /> Subir 3 Fotos para Diagnosticar ({imagenes.length}/3)
+                        </>
+                      ) : (
+                        <>
+                          <FaBrain className="text-sm" /> Iniciar Diagnóstico IA (3/3 Listo)
+                        </>
+                      )}
+                    </button>
+
+                    {imagenes.length < 3 && (
+                      <p className="text-[10px] text-center text-amber-300/80 font-medium italic">
+                        ⚠️ La IA requiere 3 muestras para triangular la salud foliar (Faltan {3 - imagenes.length} fotos)
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -613,8 +949,26 @@ function Dashboard() {
                 <div className="animate-in slide-in-from-bottom-5 duration-500">
                   <div id="seccion-reporte" className="bg-white rounded-[2.5rem] p-8 shadow-2xl text-slate-900 border border-slate-100">
                     {imagePreview && (
-                      <div className="mb-6 rounded-2xl overflow-hidden border-4 border-slate-50">
-                        <img src={imagePreview} alt="hallazgo" className="w-full h-44 object-cover" />
+                      <div className="mb-6 rounded-2xl overflow-hidden border-4 border-slate-50 shadow-sm">
+                        <img src={imagePreview} alt="hallazgo" className="w-full h-48 object-cover" />
+                        {imagenes.length > 0 && (
+                          <div className="bg-slate-50 px-4 py-2.5 flex items-center justify-between border-t border-slate-100">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                              Muestras Trianguladas (3):
+                            </span>
+                            <div className="flex gap-2">
+                              {imagenes.map((m, i) => (
+                                <img
+                                  key={i}
+                                  src={m.preview}
+                                  alt={`muestra-${i}`}
+                                  className="w-9 h-9 rounded-xl object-cover border border-slate-200 shadow-sm"
+                                  title={`Muestra ${i + 1}: ${m.label}`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                     <div className="flex items-center justify-between mb-4">
@@ -696,6 +1050,60 @@ function Dashboard() {
           </div>
         )}
       </div>
+      {/* MODAL DE AVISO / ALERTA BONITO (REEMPLAZO DE ALERT NATIVO) */}
+      {modalAlerta.visible && (
+        <div 
+          onClick={cerrarAviso} 
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()} 
+            className="bg-slate-900 border border-white/20 rounded-[2.5rem] p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-200 text-white relative"
+          >
+            <button
+              onClick={cerrarAviso}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-xl hover:bg-white/10 transition-colors"
+              title="Cerrar"
+            >
+              <FaTimes size={16} />
+            </button>
+
+            {/* Ícono según el tipo */}
+            <div className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-xl">
+              {modalAlerta.tipo === "error" ? (
+                <div className="w-full h-full bg-red-500/20 text-red-400 border border-red-500/40 rounded-2xl flex items-center justify-center">
+                  <FaExclamationTriangle size={28} />
+                </div>
+              ) : modalAlerta.tipo === "info" ? (
+                <div className="w-full h-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 rounded-2xl flex items-center justify-center">
+                  <FaInfoCircle size={28} />
+                </div>
+              ) : (
+                <div className="w-full h-full bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-2xl flex items-center justify-center">
+                  <FaExclamationTriangle size={28} />
+                </div>
+              )}
+            </div>
+
+            <h3 className="text-xl font-black tracking-tight text-white mb-2">
+              {modalAlerta.titulo}
+            </h3>
+
+            <p className="text-xs text-slate-300 leading-relaxed font-medium">
+              {modalAlerta.mensaje}
+            </p>
+
+            <button
+              type="button"
+              onClick={cerrarAviso}
+              className="w-full mt-6 py-3.5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold rounded-2xl shadow-lg shadow-green-600/30 uppercase text-xs tracking-wider transition-all active:scale-95"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
+
       <canvas ref={canvasRef} style={{ display: "none" }} />
     </div>
   );
