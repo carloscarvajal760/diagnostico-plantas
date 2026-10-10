@@ -9,7 +9,7 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import UsuariosTable from "../components/UsuariosTable";
 
-const ADMIN_EMAIL = "admin@gmail.com";
+const ADMIN_EMAIL = "jimmylobaton@gmail.com";
 
 function Dashboard() {
   const navigate = useNavigate();
