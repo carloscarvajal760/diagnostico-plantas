@@ -27,8 +27,8 @@ import {
 const USUARIOS_DEMO = [
   {
     id: "user-admin-01",
-    email: "admin@gmail.com",
-    nombre: "Carlos Carvajal (Administrador)",
+    email: "jimmylobaton@gmail.com",
+    nombre: "Jimmy Lobaton (Administrador)",
     rol: "Administrador",
     estado: "Activo",
     telefono: "+591 76543210",
@@ -68,7 +68,7 @@ const USUARIOS_DEMO = [
 ];
 
 export default function UsuariosTable({ currentUser }) {
-  const esAdmin = currentUser?.email === "admin@gmail.com";
+  const esAdmin = currentUser?.email === "jimmylobaton@gmail.com";
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
@@ -133,7 +133,7 @@ export default function UsuariosTable({ currentUser }) {
                 id: idGenerado,
                 email: email,
                 nombre: usu.includes("@") ? usu.split("@")[0] : usu,
-                rol: email === "admin@gmail.com" ? "Administrador" : "Jardinero / Operador",
+                rol: email === "jimmylobaton@gmail.com" ? "Administrador" : "Jardinero / Operador",
                 estado: "Activo",
                 area: "Campo / Diagnóstico",
                 telefono: "",
