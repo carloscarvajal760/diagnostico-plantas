@@ -77,7 +77,7 @@ export const baseConocimiento = {
     tratamiento: "Podar y quemar material infectado antes de la brotación. Aplicar fungicidas sistémicos desde la pre-floración y mantener el follaje aireado.",
     descripcion: "Ataca hojas, brotes y frutos. Las bayas u hojas infectadas desarrollan manchas marrones que se expanden hasta momificar y secar el fruto por completo, dejándolo inservible."
   },
-  "Quemadura de las Hojas": {
+  "Quemadura De Las Hojas": {
     urgencia: "Baja",
     causa: "Estrés abiótico (exceso de insolación, corrientes de viento seco, falta de riego o acumulación de sales).",
     tratamiento: "Ajustar la frecuencia de riego, aplicar acolchado (mulch) en la base para retener humedad, lavar el sustrato con agua limpia si hay exceso de fertilizante y proporcionar sombra parcial.",
