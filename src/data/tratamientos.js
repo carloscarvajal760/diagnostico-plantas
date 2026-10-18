@@ -1,5 +1,5 @@
 export const baseConocimiento = {
-  "Acaro Arana de Dos Manchas": {
+  "Acaro Araña De Dos Manchas": {
     urgencia: "Media",
     causa: "Tetranychus urticae (favorecido por humedad baja y altas temperaturas).",
     tratamiento: "Lavar las hojas con agua a presión. Aplicar jabón potásico o aceite de neem cada 5-7 días. En infestaciones severas, usar acaricidas específicos (como Abamectina) y aumentar la humedad ambiental.",
@@ -11,7 +11,7 @@ export const baseConocimiento = {
     tratamiento: "Aplicar fungicidas a base de azufre o cobre en brotación. Podar ramas infestadas para mejorar la ventilación y recoger las hojas caídas del suelo para eliminar la fuente de inóculo.",
     descripcion: "Enfermedad fúngica severa que genera lesiones aterciopeladas de color oliva a negro en hojas y frutos. Los frutos afectados se deforman, se agrietan y pierden su valor comercial."
   },
-  "Huanglongbing": {
+  "Huanglongbing Enverdecimiento": {
     urgencia: "Critica",
     causa: "Bacteria Candidatus Liberibacter (transmitida por el psílido asiático Diaphorina citri).",
     tratamiento: "No existe cura química. Erradicar e incinerar inmediatamente las plantas infectadas para frenar el contagio. Controlar estrictamente el vector mediante insecticidas sistemáticos y monitoreo constante.",
@@ -29,19 +29,19 @@ export const baseConocimiento = {
     tratamiento: "Aplicar fungicidas sistémicos (como Estrobirulinas o Triazoles) al notar los primeros síntomas. Rotar cultivos y eliminar los rastrojos de cosechas anteriores.",
     descripcion: "Patógeno fúngico que crea lesiones circulares características con centros claros y bordes oscuros (efecto 'blanco de tiro'). Afecta fotosíntesis y causa caída prematura de hojas."
   },
-  "Mancha Foliar por Cercospora": {
+  "Mancha Foliar Por Cercospora": {
     urgencia: "Media",
     causa: "Hongo Cercospora spp.",
     tratamiento: "Aplicar fungicidas protectantes como Mancozeb o Benomilo. Mejorar la distancia entre plantas para favorecer la circulación de aire y reducir la humedad foliar.",
     descripcion: "Enfermedad común en climas cálidos y húmedos. Produce manchas redondas grisáceas o marrones con bordes púrpura en las hojas viejas, reduciendo el área fotosintética útil."
   },
-  "Mancha Foliar por Isariopsis": {
+  "Mancha Foliar Por Isariopsis": {
     urgencia: "Baja",
     causa: "Hongo Pseudocercospora vitis (anteriormente Isariopsis clavispora).",
     tratamiento: "Tratamientos preventivos con oxicloruro de cobre tras la cosecha. Realizar podas sanitarias y mantener el suelo libre de hojas secas o infectadas.",
     descripcion: "Aparece como manchas irregulares de color marrón oscuro en las hojas, especialmente al final del ciclo del cultivo. Suele controlarse bien con una adecuada higiene del huerto."
   },
-  "Mancha Foliar por Septoria": {
+  "Mancha Foliar Por Septoria": {
     urgencia: "Media",
     causa: "Hongo Septoria lycopersici.",
     tratamiento: "Poda de hojas inferiores (poda de bajos) para evitar el contacto con el suelo. Aplicar fungicidas como Clortalonil o azufre y evitar mojar las hojas al regar.",
@@ -53,7 +53,7 @@ export const baseConocimiento = {
     tratamiento: "Aplicar azufre mojable, bicarbonato de potasio o fungicidas de la familia de los Triazoles. Ubicar la planta en un lugar bien ventilado y con buena iluminación solar.",
     descripcion: "Fácilmente reconocible por cubrir hojas y tallos con un polvo o moho blanco similar al talco. Al bloquear la luz solar, amarillea la hoja y reduce drásticamente el crecimiento."
   },
-  "Moho en la Hoja": {
+  "Moho En La Hoja": {
     urgencia: "Media",
     causa: "Hongo Passalora fulva (antes Cladosporium fulvum).",
     tratamiento: "Aumentar la ventilación dentro del invernadero o zona de cultivo. Aplicar fungicidas preventivos o biológicos (a base de Bacillus subtilis) y controlar la humedad relativa (<85%).",
@@ -77,7 +77,7 @@ export const baseConocimiento = {
     tratamiento: "Podar y quemar material infectado antes de la brotación. Aplicar fungicidas sistémicos desde la pre-floración y mantener el follaje aireado.",
     descripcion: "Ataca hojas, brotes y frutos. Las bayas u hojas infectadas desarrollan manchas marrones que se expanden hasta momificar y secar el fruto por completo, dejándolo inservible."
   },
-  "Quemadura de las Hojas": {
+  "Quemadura De Las Hojas": {
     urgencia: "Baja",
     causa: "Estrés abiótico (exceso de insolación, corrientes de viento seco, falta de riego o acumulación de sales).",
     tratamiento: "Ajustar la frecuencia de riego, aplicar acolchado (mulch) en la base para retener humedad, lavar el sustrato con agua limpia si hay exceso de fertilizante y proporcionar sombra parcial.",
@@ -89,7 +89,7 @@ export const baseConocimiento = {
     tratamiento: "Desinfectar minuciosamente las tijeras de podar. Aplicar pastas cicatrizantes con fungicida sobre los cortes de poda. Eliminar los brazos o madera afectada severamente.",
     descripcion: "Enfermedad vascular que degenera internamente la madera del tronco, bloqueando el transporte de agua y nutrientes. Genera manchas atigradas en las hojas y punteados negros en los frutos."
   },
-  "Tizon de la Hoja del Norte": {
+  "Tizon De La Hoja Del Norte": {
     urgencia: "Media",
     causa: "Hongo Exserohilum turcicum.",
     tratamiento: "Utilizar híbridos de cultivo resistentes. Aplicar fungicidas foliares ante los primeros síntomas y realizar rotación con cultivos no gramíneos.",
@@ -107,13 +107,13 @@ export const baseConocimiento = {
     tratamiento: "Aplicar fungicidas preventivos (como Clortalonil o Mancozeb) y reforzar la nutrición con potasio. Evitar el riego foliar y retirar hojas secas de la base.",
     descripcion: "Caracterizado por manchas marrones con anillos concéntricos bien marcados (patrón en forma de 'diana' o blanco de tiro). Afecta primero a las hojas maduras y reduce la productividad."
   },
-  "Virus del Mosaico": {
+  "Virus Del Mosaico": {
     urgencia: "Alta",
     causa: "Virus del Mosaico (TMV, CMV, entre otros, transmitidos por vectores como pulgones o contacto).",
     tratamiento: "No hay tratamiento curativo. Erradicar plantas enfermas para prevenir la propagación. Controlar plagas de insectos chupadores con insecticidas u óleos y lavarse las manos tras manipular plantas.",
     descripcion: "Provoca un patrón de coloración irregular con zonas verde claro y verde oscuro en las hojas, acompañado de deformación foliar, empequeñecimiento y enanismo en la planta."
   },
-  "Virus del Rizado Amarillo": {
+  "Virus Del Rizado Amarillo": {
     urgencia: "Alta",
     causa: "Begomovirus (transmitido exclusivamente por la mosca blanca Bemisia tabaci).",
     tratamiento: "Colocar mallas anti-insectos y trampas cromáticas amarillas para capturar moscas blancas. Eliminar plantas afectadas inmediatamente y aplicar insecticidas o jabón potásico para el vector.",
