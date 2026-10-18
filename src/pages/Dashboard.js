@@ -5,7 +5,7 @@ import { collection, addDoc, serverTimestamp, query, getDocs, orderBy, limit } f
 import { FaSignOutAlt, FaCamera, FaUpload, FaCheckCircle, FaBrain, FaLeaf, FaSeedling, FaExclamationTriangle, FaFilePdf, FaHistory, FaSync, FaUserCircle, FaUsers, FaSearch, FaTimes, FaImages, FaTrash, FaPlus, FaLayerGroup, FaLock, FaInfoCircle } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { baseConocimiento } from "../data/tratamientos";
-import { traducirEnfermedad } from "./data/traducciones";
+import { traducirEnfermedad } from "../data/traducciones";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import UsuariosTable from "../components/UsuariosTable";
