@@ -5,6 +5,7 @@ import { collection, addDoc, serverTimestamp, query, getDocs, orderBy, limit } f
 import { FaSignOutAlt, FaCamera, FaUpload, FaCheckCircle, FaBrain, FaLeaf, FaSeedling, FaExclamationTriangle, FaFilePdf, FaHistory, FaSync, FaUserCircle, FaUsers, FaSearch, FaTimes, FaImages, FaTrash, FaPlus, FaLayerGroup, FaLock, FaInfoCircle } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { baseConocimiento } from "../data/tratamientos";
+import { traducirEnfermedad } from "./data/traducciones";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import UsuariosTable from "../components/UsuariosTable";
@@ -199,7 +200,7 @@ function Dashboard() {
       formData.append("file", imagenes[0].file);
       const res = await fetch("https://carloscarvajal760-diagnostico-plantas-api.hf.space/predict", { method: "POST", body: formData });
       const data = await res.json();
-      const nombreLimpio = data.class_name.replaceAll("_", " ");
+      const nombreLimpio = traducirEnfermedad(data.class_name);
       const resObj = { disease: nombreLimpio, confidence: Math.round(data.confidence * 100) };
 
       setResult(resObj);
